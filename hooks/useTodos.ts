@@ -3,12 +3,17 @@ import { Task, Priority } from '../types/todo'
 
 export function useTodos() {
   const [tasks, setTasks] = useState<Task[]>(() => {
-    const savedTasks = localStorage.getItem('tasks')
-    return savedTasks ? JSON.parse(savedTasks) : []
+    if (typeof window !== 'undefined') {
+      const savedTasks = localStorage.getItem('tasks')
+      return savedTasks ? JSON.parse(savedTasks) : []
+    }
+    return []
   })
 
   useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks))
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tasks', JSON.stringify(tasks))
+    }
   }, [tasks])
 
   const addTask = (text: string, priority: Priority) => {
@@ -27,4 +32,3 @@ export function useTodos() {
 
   return { tasks, addTask, toggleTask, deleteTask }
 }
-

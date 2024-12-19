@@ -7,16 +7,21 @@ export function DarkModeToggle() {
   const [darkMode, setDarkMode] = useState(false)
 
   useEffect(() => {
-    const isDarkMode = localStorage.getItem('darkMode') === 'true'
-    setDarkMode(isDarkMode)
-    document.documentElement.classList.toggle('dark', isDarkMode)
+    // Only run in the browser, as `localStorage` is not available during SSR
+    if (typeof window !== 'undefined') {
+      const isDarkMode = localStorage.getItem('darkMode') === 'true'
+      setDarkMode(isDarkMode)
+      document.documentElement.classList.toggle('dark', isDarkMode)
+    }
   }, [])
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode
     setDarkMode(newDarkMode)
-    localStorage.setItem('darkMode', newDarkMode.toString())
-    document.documentElement.classList.toggle('dark', newDarkMode)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('darkMode', newDarkMode.toString())
+      document.documentElement.classList.toggle('dark', newDarkMode)
+    }
   }
 
   return (
@@ -32,4 +37,3 @@ export function DarkModeToggle() {
     </button>
   )
 }
-

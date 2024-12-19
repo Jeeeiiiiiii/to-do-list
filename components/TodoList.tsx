@@ -14,12 +14,17 @@ interface Task {
 
 export default function TodoList() {
   const [tasks, setTasks] = useState<Task[]>(() => {
-    const savedTasks = localStorage.getItem('tasks')
-    return savedTasks ? JSON.parse(savedTasks) : []
+    if (typeof window !== 'undefined') {
+      const savedTasks = localStorage.getItem('tasks')
+      return savedTasks ? JSON.parse(savedTasks) : []
+    }
+    return []
   })
 
   useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks))
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tasks', JSON.stringify(tasks))
+    }
   }, [tasks])
 
   const addTask = (text: string) => {
@@ -60,4 +65,3 @@ export default function TodoList() {
     </div>
   )
 }
-
