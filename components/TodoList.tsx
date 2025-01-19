@@ -1,45 +1,11 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import { AddTaskForm } from './AddTaskForm'
-import { TaskItem } from './TaskItem'
-import { DarkModeToggle } from './DarkModeToggle'
-import { motion, AnimatePresence } from 'framer-motion'
-
-interface Task {
-  id: string
-  text: string
-  completed: boolean
-}
+import { useTodos } from '../hooks/useTodos';
+import { AddTaskForm } from './AddTaskForm';
+import { TaskItem } from './TaskItem';
+import { DarkModeToggle } from './DarkModeToggle';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function TodoList() {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    if (typeof window !== 'undefined') {
-      const savedTasks = localStorage.getItem('tasks')
-      return savedTasks ? JSON.parse(savedTasks) : []
-    }
-    return []
-  })
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('tasks', JSON.stringify(tasks))
-    }
-  }, [tasks])
-
-  const addTask = (text: string) => {
-    setTasks([...tasks, { id: Date.now().toString(), text, completed: false }])
-  }
-
-  const toggleTask = (id: string) => {
-    setTasks(tasks.map((task) =>
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ))
-  }
-
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id))
-  }
+  const { tasks, addTask, toggleTask, removeTask } = useTodos();
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md mx-auto">
@@ -57,11 +23,11 @@ export default function TodoList() {
             <TaskItem
               task={task}
               onToggle={() => toggleTask(task.id)}
-              onDelete={() => deleteTask(task.id)}
+              onDelete={() => removeTask(task.id)}
             />
           </motion.div>
         ))}
       </AnimatePresence>
     </div>
-  )
+  );
 }
