@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { fetchTasks, createTask, updateTask, deleteTask } from '../components/api';
 import { Task } from '../types/todo';
