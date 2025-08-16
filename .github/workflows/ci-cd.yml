@@ -1,0 +1,114 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run linting
+      run: npm run lint
+    
+    - name: Type check
+      run: npx tsc --noEmit
+    
+    - name: Build application
+      run: npm run build
+    
+    - name: Cache build artifacts
+      uses: actions/cache@v3
+      with:
+        path: |
+          .next/cache
+          node_modules
+        key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build for production
+      run: npm run build
+    
+    - name: Create deployment package
+      run: |
+        mkdir deploy
+        cp -r .next ./deploy/
+        cp -r public ./deploy/
+        cp package*.json ./deploy/
+        cp -r node_modules ./deploy/
+        cd deploy && tar -czf ../deploy.tar.gz .
+    
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: 22
+        script: |
+          sudo systemctl stop todo-app || true
+          rm -rf /var/www/todo-app
+          mkdir -p /var/www/todo-app
+          
+    - name: Copy files to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: 22
+        source: "deploy.tar.gz"
+        target: "/tmp/"
+        
+    - name: Extract and setup application
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: 22
+        script: |
+          cd /var/www/todo-app
+          tar -xzf /tmp/deploy.tar.gz
+          npm install --production
+          sudo systemctl start todo-app
+          sudo systemctl enable todo-app
+          rm /tmp/deploy.tar.gz
